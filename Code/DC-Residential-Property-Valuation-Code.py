@@ -1,6 +1,6 @@
 # Title: DC Residential Property Valuation Analysis
 # Author: Alexander Zakrzeski
-# Date: November 7, 2025
+# Date: November 9, 2025
 
 # Part 1: Setup and Configuration
 
@@ -31,50 +31,68 @@ houses = (
               pl.col("heat_d").is_in(["Forced Air", "Hot Water Rad", 
                                       "Warm Cool"]) & 
               ~((pl.col("heat_d") == "Warm Cool") & (pl.col("ac") == "N")) &
-              pl.col("ac").is_in(["Y", "N"]))
+              pl.col("ac").is_in(["Y", "N"]) &
+              (pl.col("num_units") == 1) &
+              pl.col("rooms").is_between(3, 15) & 
+              (pl.col("rooms") > pl.col("bedrms")) & 
+              pl.col("bedrms").is_between(2, 6) &
+              pl.col("ayb").is_between(1900, 2025) &
+              (pl.col("ayb") <= pl.col("sale_date")
+                                  .str.split(" ").list.first()             
+                                  .str.to_date(format = "%Y/%m/%d")
+                                  .dt.year()) &
+              ((pl.col("yr_rmdl").is_between(pl.col("ayb"), 2025) &
+                (pl.col("yr_rmdl") <= pl.col("sale_date")
+                                        .str.split(" ").list.first()
+                                        .str.to_date(format = "%Y/%m/%d")
+                                        .dt.year())) |
+               pl.col("yr_rmdl").is_null()) &
+              (((pl.col("stories") == 1) & (pl.col("style_d") == "1 Story")) |
+               ((pl.col("stories") == 1.5) & 
+                (pl.col("style_d") == "1.5 Story Fin")) |
+               ((pl.col("stories") == 2) & (pl.col("style_d") == "2 Story")) |
+               ((pl.col("stories") == 2.5) & 
+                (pl.col("style_d") == "2.5 Story Fin")) |
+               ((pl.col("stories") == 3) & (pl.col("style_d") == "3 Story")) |
+               ((pl.col("stories") == 3.5) & 
+                (pl.col("style_d") == "3.5 Story Fin")) |
+               ((pl.col("stories") == 4) & (pl.col("style_d") == "4 Story"))) &
+              (pl.col("sale_date")
+                 .str.split(" ").list.first()
+                 .str.to_date(format = "%Y/%m/%d")
+                 .is_between(pl.date(2019, 5, 9), pl.date(2025, 5, 9))) &
+              pl.col("price").is_between(300_000, 3_250_000) &
+              (pl.col("qualified") == "Q"))
     )
-              
 
 
 
 
+  
 
-
-               
- 
-################################################################################
-houses.columns
-len(houses)
-len(houses.filter(pl.col("ac").is_in(["Y", "N"])))
-houses.select(pl.col("ac").value_counts(sort = True)).to_series().to_list()
 ################################################################################
 
-  (appraisals["num_units"].between(1, 4)) &
- ~((appraisals["num_units"] == 1) & (appraisals["struct_d"] == "Multi")) & 
-  (appraisals["rooms"].between(1, 16)) &
-  (appraisals["rooms"] > appraisals["bedrms"]) & 
-  (appraisals["bedrms"].between(1, 8)) &
-  (appraisals["ayb"].between(1900, 2024)) &
-  (appraisals["ayb"] <= pd.to_datetime(appraisals["saledate"]).dt.year) & 
-  (((appraisals["yr_rmdl"].between(appraisals["ayb"], 2024)) & 
-    (appraisals["yr_rmdl"] <= pd.to_datetime(appraisals["saledate"]). 
-                              dt.year)) | 
-   (appraisals["yr_rmdl"].isna())) & 
-  (((appraisals["stories"] == 1) & (appraisals["style_d"] == "1 Story")) |
-   ((appraisals["stories"] == 1.5) & 
-    (appraisals["style_d"] == "1.5 Story Fin")) | 
-   ((appraisals["stories"] == 2) & (appraisals["style_d"] == "2 Story")) | 
-   ((appraisals["stories"] == 2.5) & 
-    (appraisals["style_d"] == "2.5 Story Fin")) |
-   ((appraisals["stories"] == 3) & (appraisals["style_d"] == "3 Story")) | 
-   ((appraisals["stories"] == 3.5) & 
-    (appraisals["style_d"] == "3.5 Story Fin")) |
-   ((appraisals["stories"] == 4) & (appraisals["style_d"] == "4 Story"))) &
-  (pd.to_datetime(appraisals["saledate"]).dt.normalize(). 
-   between(pd.Timestamp(2020, 1, 1, tz = "UTC"), 
-           pd.Timestamp(2024, 12, 31, tz = "UTC"))) & 
-  (appraisals["price"].between(250000, 2500000)) & 
-  (appraisals["qualified"] == "Q") &
+og = (
+    pl.read_parquet("DC-House-Valuation-Data.parquet")
+      .rename(str.lower)
+      .rename({"bathrm": "bathrms",
+               "hf_bathrm": "hf_bathrms",
+               "bedrm": "bedrms",
+               "saledate": "sale_date",
+               "intwall_d": "floor_d"})
+      .drop("objectid", "heat", "eyb", "style", "struct", "grade", "grade_d", 
+            "cndtn", "cndtn_d", "extwall", "roof", "intwall", 
+            "gis_last_mod_dttm")
+    )
+
+og.columns
+len(og)
+len(og.filter(pl.col("ayb").is_between(1900, 2025)))
+og.select(pl.col("qualified").value_counts(sort = True)).to_series().to_list()
+################################################################################
+
+
+
   (appraisals["sale_num"] <= 8) & 
   (appraisals["gba"].between(500, 5000)) &
   (appraisals["bldg_num"] == 1) & 
