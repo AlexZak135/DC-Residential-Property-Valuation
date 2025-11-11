@@ -11,7 +11,9 @@ import polars as pl
 # Set the working directory
 os.chdir("/Users/atz5/Desktop/DC-Residential-Property-Valuation/Data")
 
-# Part 2: Data Preprocessing
+# Part 2: Function Definitions
+
+# Part 3: Data Preprocessing
 
 # Load the data from the Parquet file, rename columns, and drop columns
 houses = (
@@ -49,11 +51,6 @@ houses = (
                                         .str.to_date(format = "%Y/%m/%d")
                                         .dt.year())) | 
                pl.col("yr_rmdl").is_null()) &
-              
-              
- 
-          
-            
               (((pl.col("stories") == 1) & (pl.col("style_d") == "1 Story")) |
                ((pl.col("stories") == 1.5) & 
                 (pl.col("style_d") == "1.5 Story Fin")) |
@@ -64,11 +61,11 @@ houses = (
               (pl.col("sale_date")
                  .str.split(" ").list.first()
                  .str.to_date(format = "%Y/%m/%d")
-                 .is_between(pl.date(2_019, 5, 9), pl.date(2_025, 5, 9))) &
-              pl.col("price").is_between(300_000, 3_250_000) &
-              (pl.col("qualified") == "Q") & 
-              (pl.col("sale_num") <= 6) &
-              pl.col("gba").is_between(600, 6_000) &
+                 .is_between(pl.date(2_019, 1, 1), pl.date(2_025, 5, 9))) &
+              pl.col("price").is_between(300_000, 3_250_000) & 
+              (pl.col("qualified") == "Q") &
+              pl.col("sale_num").is_between(1, 6) &
+              pl.col("gba").is_between(700, 6_000) &
               (pl.col("bldg_num") == 1) &
               ((pl.col("struct_d").is_in(["Row End", "Row Inside"]) &
                 (pl.col("usecode") == 11)) |
@@ -80,100 +77,16 @@ houses = (
                                          "Wood Siding"]) &
               pl.col("roof_d").is_in(["Built Up", "Comp Shingle", "Metal- Sms", 
                                       "Slate"]) &
-              pl.col("floor_d").is_in(["Hardwood", "Hardwood/Carp", 
-                                       "Wood Floor"]) &
+              pl.col("floor_d").is_in(["Carpet", "Hardwood", "Hardwood/Carp", 
+                                       "Wood Floor"]) &        
               pl.col("kitchens").is_between(1, 2) &
-              pl.col("fireplaces").is_between(0, 2) &
+              pl.col("fireplaces").is_between(0, 3) &
               pl.col("landarea").is_between(400, 15_000))
     )
 
-
-
 ################################################################################
+# Check Data Types and Columns
 
-og = (
-    pl.read_parquet("DC-House-Valuation-Data.parquet")
-      .rename(str.lower)
-      .rename({"bathrm": "bathrms",
-               "hf_bathrm": "hf_bathrms",
-               "bedrm": "bedrms",
-               "saledate": "sale_date",
-               "intwall_d": "floor_d"})
-      .drop("objectid", "heat", "eyb", "style", "struct", "grade", "grade_d", 
-            "cndtn", "cndtn_d", "extwall", "roof", "intwall", 
-            "gis_last_mod_dttm")
-    )
-
-og.columns
-len(og.filter(pl.col("ayb").is_between(1_850, 2_025))) / len(og)
-
-og.select(pl.col("").value_counts(sort = True)).to_series().to_list()
-og.select(pl.col("ayb").value_counts(sort = True, normalize = True)).to_series().to_list()
-
-
-################################################################################
-
- 'stories',
- 'sale_date',
- 'price',
- 'qualified',
- 'sale_num',
- 'gba',
- 'bldg_num',
- 'style_d',
- 'struct_d',
- 'extwall_d',
- 'roof_d',
- 'floor_d',
- 'kitchens',
- 'fireplaces',
- 'usecode',
- 'landarea'
-
-
-
-
-  (((appraisals["stories"] == 1) & (appraisals["style_d"] == "1 Story")) |
-   ((appraisals["stories"] == 1.5) & 
-    (appraisals["style_d"] == "1.5 Story Fin")) | 
-   ((appraisals["stories"] == 2) & (appraisals["style_d"] == "2 Story")) | 
-   ((appraisals["stories"] == 2.5) & 
-    (appraisals["style_d"] == "2.5 Story Fin")) |
-   ((appraisals["stories"] == 3) & (appraisals["style_d"] == "3 Story")) | 
-   ((appraisals["stories"] == 3.5) & 
-    (appraisals["style_d"] == "3.5 Story Fin")) |
-   ((appraisals["stories"] == 4) & (appraisals["style_d"] == "4 Story"))) &
-  (pd.to_datetime(appraisals["saledate"]).dt.normalize(). 
-   between(pd.Timestamp(2020, 1, 1, tz = "UTC"), 
-           pd.Timestamp(2024, 12, 31, tz = "UTC"))) & 
-  (appraisals["price"].between(250000, 2500000)) & 
-  (appraisals["qualified"] == "Q") &
-  (appraisals["sale_num"] <= 8) & 
-  (appraisals["gba"].between(500, 5000)) &
-  (appraisals["bldg_num"] == 1) & 
- ~((appraisals["struct_d"].isin(["No Data", "Vacant Land"])) | 
-   ((appraisals["struct_d"] == "Multi") & 
-    (appraisals["usecode"].isin([11, 13]))) | 
-   ((appraisals["struct_d"].isin(["Row End", "Row Inside", "Town End", 
-                                  "Town Inside"])) & 
-    (appraisals["usecode"] == 12)) |
-   ((appraisals["struct_d"] == "Semi-Detached") & 
-    (appraisals["usecode"] == 11)) |
-   ((appraisals["struct_d"] == "Single") & 
-    (appraisals["usecode"].isin([11, 13, 23, 24])))) &
- ~(appraisals["extwall_d"].isin(["Adobe", "Aluminum", "Concrete", 
-                                 "Concrete Block", "Hardboard", "Metal Siding", 
-                                 "No Data", "Plywood", "Rustic Log", 
-                                 "SPlaster", "Stucco Block"])) &
- ~(appraisals["roof_d"].isin(["Concrete", "Concrete Tile", "Neopren", 
-                              "Typical", "Water Proof", "Wood- FS"])) &
- ~(appraisals["floor_d"].isin(["Lt Concrete", "No Data", "Parquet", 
-                               "Resiliant"])) &
-  (appraisals["kitchens"].between(1, 4)) &
-  (appraisals["fireplaces"] <= 3) &
-  (appraisals["usecode"].isin([11, 12, 13, 23, 24])) &
-  (appraisals["landarea"].between(500, 12000)) 
-  ]
 
 # Modify the values of existing columns and create new columns
 appraisals["ssl"] = appraisals["ssl"].str.replace(r"\s{2,}", " ", regex = True) 
