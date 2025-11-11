@@ -1,6 +1,6 @@
 # Title: DC Residential Property Valuation Analysis
 # Author: Alexander Zakrzeski
-# Date: November 10, 2025
+# Date: November 11, 2025
 
 # Part 1: Setup and Configuration
 
@@ -27,16 +27,18 @@ houses = (
             "gis_last_mod_dttm")
       # Filter, modify the values of existing columns, and create new columns
       .filter(pl.col("bathrms").is_between(1, 4) & 
-              pl.col("hf_bathrms").is_between(0, 2) & 
-              pl.col("heat_d").is_in(["Forced Air", "Hot Water Rad", 
-                                      "Warm Cool"]) & 
-              ~((pl.col("heat_d") == "Warm Cool") & (pl.col("ac") == "N")) &
-              pl.col("ac").is_in(["Y", "N"]) &
+              pl.col("hf_bathrms").is_between(0, 2) &
+              pl.col("heat_d").is_in(["Forced Air", "Hot Water Rad", "Ht Pump", 
+                                      "Warm Cool"]) &
+              ~(((pl.col("heat_d") == "Forced Air") & (pl.col("ac") == "N")) |
+                ((pl.col("heat_d") == "Ht Pump") & (pl.col("ac") == "N")) |
+                ((pl.col("heat_d") == "Warm Cool") & (pl.col("ac") == "N"))) &
+              pl.col("ac").is_in(["N", "Y"]) &
               (pl.col("num_units") == 1) &
-              pl.col("rooms").is_between(3, 15) & 
-              (pl.col("rooms") > pl.col("bedrms")) & 
-              pl.col("bedrms").is_between(2, 6) &
-              pl.col("ayb").is_between(1_900, 2_025) &
+              pl.col("rooms").is_between(4, 12) & 
+              (pl.col("rooms") >= pl.col("bedrms")) & 
+              pl.col("bedrms").is_between(2, 6) & 
+              pl.col("ayb").is_between(1_890, 2_025) & 
               (pl.col("ayb") <= pl.col("sale_date")
                                   .str.split(" ").list.first()             
                                   .str.to_date(format = "%Y/%m/%d")
@@ -45,8 +47,13 @@ houses = (
                 (pl.col("yr_rmdl") <= pl.col("sale_date")
                                         .str.split(" ").list.first()
                                         .str.to_date(format = "%Y/%m/%d")
-                                        .dt.year())) |
+                                        .dt.year())) | 
                pl.col("yr_rmdl").is_null()) &
+              
+              
+ 
+          
+            
               (((pl.col("stories") == 1) & (pl.col("style_d") == "1 Story")) |
                ((pl.col("stories") == 1.5) & 
                 (pl.col("style_d") == "1.5 Story Fin")) |
@@ -63,8 +70,11 @@ houses = (
               (pl.col("sale_num") <= 6) &
               pl.col("gba").is_between(600, 6_000) &
               (pl.col("bldg_num") == 1) &
-              pl.col("struct_d").is_in(["Row End", "Row Inside", 
-                                        "Semi-Detached", "Single"])
+              ((pl.col("struct_d").is_in(["Row End", "Row Inside"]) &
+                (pl.col("usecode") == 11)) |
+               ((pl.col("struct_d") == "Single") & (pl.col("usecode") == 12)) |
+               ((pl.col("struct_d") == "Semi-Detached") & 
+                (pl.col("usecode") == 13))) &
               pl.col("extwall_d").is_in(["Brick/Siding", "Common Brick", 
                                          "Stucco", "Vinyl Siding", 
                                          "Wood Siding"]) &
@@ -74,29 +84,12 @@ houses = (
                                        "Wood Floor"]) &
               pl.col("kitchens").is_between(1, 2) &
               pl.col("fireplaces").is_between(0, 2) &
-              pl.col("usecode").is_in([11, 12, 13]))
+              pl.col("landarea").is_between(400, 15_000))
     )
 
 
 
-
-
-
-
-
 ################################################################################
-  ~((appraisals["struct_d"].isin(["No Data", "Vacant Land"])) | 
-   ((appraisals["struct_d"] == "Multi") & 
-    (appraisals["usecode"].isin([11, 13]))) | 
-   ((appraisals["struct_d"].isin(["Row End", "Row Inside", "Town End", 
-                                  "Town Inside"])) & 
-    (appraisals["usecode"] == 12)) |
-   ((appraisals["struct_d"] == "Semi-Detached") & 
-    (appraisals["usecode"] == 11)) |
-   ((appraisals["struct_d"] == "Single") & 
-    (appraisals["usecode"].isin([11, 13, 23, 24])))) &
-
-
 
 og = (
     pl.read_parquet("DC-House-Valuation-Data.parquet")
@@ -112,14 +105,77 @@ og = (
     )
 
 og.columns
-len(og)
-len(og.filter(pl.col("kitchens").is_between(1, 2)))
-og.select(pl.col("usecode").value_counts(sort = True)).to_series().to_list()
+len(og.filter(pl.col("ayb").is_between(1_850, 2_025))) / len(og)
+
+og.select(pl.col("").value_counts(sort = True)).to_series().to_list()
+og.select(pl.col("ayb").value_counts(sort = True, normalize = True)).to_series().to_list()
+
+
 ################################################################################
 
+ 'stories',
+ 'sale_date',
+ 'price',
+ 'qualified',
+ 'sale_num',
+ 'gba',
+ 'bldg_num',
+ 'style_d',
+ 'struct_d',
+ 'extwall_d',
+ 'roof_d',
+ 'floor_d',
+ 'kitchens',
+ 'fireplaces',
+ 'usecode',
+ 'landarea'
+
+
+
+
+  (((appraisals["stories"] == 1) & (appraisals["style_d"] == "1 Story")) |
+   ((appraisals["stories"] == 1.5) & 
+    (appraisals["style_d"] == "1.5 Story Fin")) | 
+   ((appraisals["stories"] == 2) & (appraisals["style_d"] == "2 Story")) | 
+   ((appraisals["stories"] == 2.5) & 
+    (appraisals["style_d"] == "2.5 Story Fin")) |
+   ((appraisals["stories"] == 3) & (appraisals["style_d"] == "3 Story")) | 
+   ((appraisals["stories"] == 3.5) & 
+    (appraisals["style_d"] == "3.5 Story Fin")) |
+   ((appraisals["stories"] == 4) & (appraisals["style_d"] == "4 Story"))) &
+  (pd.to_datetime(appraisals["saledate"]).dt.normalize(). 
+   between(pd.Timestamp(2020, 1, 1, tz = "UTC"), 
+           pd.Timestamp(2024, 12, 31, tz = "UTC"))) & 
+  (appraisals["price"].between(250000, 2500000)) & 
+  (appraisals["qualified"] == "Q") &
+  (appraisals["sale_num"] <= 8) & 
+  (appraisals["gba"].between(500, 5000)) &
+  (appraisals["bldg_num"] == 1) & 
+ ~((appraisals["struct_d"].isin(["No Data", "Vacant Land"])) | 
+   ((appraisals["struct_d"] == "Multi") & 
+    (appraisals["usecode"].isin([11, 13]))) | 
+   ((appraisals["struct_d"].isin(["Row End", "Row Inside", "Town End", 
+                                  "Town Inside"])) & 
+    (appraisals["usecode"] == 12)) |
+   ((appraisals["struct_d"] == "Semi-Detached") & 
+    (appraisals["usecode"] == 11)) |
+   ((appraisals["struct_d"] == "Single") & 
+    (appraisals["usecode"].isin([11, 13, 23, 24])))) &
+ ~(appraisals["extwall_d"].isin(["Adobe", "Aluminum", "Concrete", 
+                                 "Concrete Block", "Hardboard", "Metal Siding", 
+                                 "No Data", "Plywood", "Rustic Log", 
+                                 "SPlaster", "Stucco Block"])) &
+ ~(appraisals["roof_d"].isin(["Concrete", "Concrete Tile", "Neopren", 
+                              "Typical", "Water Proof", "Wood- FS"])) &
+ ~(appraisals["floor_d"].isin(["Lt Concrete", "No Data", "Parquet", 
+                               "Resiliant"])) &
+  (appraisals["kitchens"].between(1, 4)) &
+  (appraisals["fireplaces"] <= 3) &
+  (appraisals["usecode"].isin([11, 12, 13, 23, 24])) &
   (appraisals["landarea"].between(500, 12000)) 
   ]
 
+# Modify the values of existing columns and create new columns
 appraisals["ssl"] = appraisals["ssl"].str.replace(r"\s{2,}", " ", regex = True) 
 appraisals["ttl_bathrms"] = conditional_map(  
   appraisals["bathrms"] + (appraisals["hf_bathrms"] * 0.5) <= 3.5,
