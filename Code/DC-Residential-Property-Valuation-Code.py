@@ -82,26 +82,30 @@ houses = (
               pl.col("kitchens").is_between(1, 2) &
               pl.col("fireplaces").is_between(0, 3) &
               pl.col("landarea").is_between(400, 15_000))
+      .with_columns(
+          pl.col("ssl").str.replace_all(r"\s{2,}", " ").alias("ssl"),
+          (pl.col("bathrms") + (pl.col("hf_bathrms") * 0.5))
+             .alias("ttl_bathrms"),
+          pl.when(pl.col("heat_d") == "Hot Water Rad")
+            .then(pl.lit("Hot Water"))
+            .when(pl.col("heat_d") == "Ht Pump") 
+            .then(pl.lit("Heat Pump"))
+            .when(pl.col("heat_d") == "Warm Cool")
+            .then(pl.lit("Dual Climate"))
+            .otherwise("heat_d")
+            .alias("heat_d") ,
+          pl.when(pl.col("ac") == "Y")
+            .then(pl.lit("Yes"))
+            .otherwise(pl.lit("No")) 
+            .alias("ac")     
+          )
     )
 
+
+
 ################################################################################
-# Check Data Types and Columns
+houses.select(pl.col().value_counts(sort = True))
 
-
-# Modify the values of existing columns and create new columns
-appraisals["ssl"] = appraisals["ssl"].str.replace(r"\s{2,}", " ", regex = True) 
-appraisals["ttl_bathrms"] = conditional_map(  
-  appraisals["bathrms"] + (appraisals["hf_bathrms"] * 0.5) <= 3.5,
-  remove_dot_zero(appraisals["bathrms"] + (appraisals["hf_bathrms"] * 0.5)),
-  True, "4 or More"  
-  ) 
-appraisals["heat_d"] = conditional_map(  
-  appraisals["heat_d"] == "Forced Air", "Forced Air",
-  appraisals["heat_d"] == "Hot Water Rad", "Hot Water",
-  appraisals["heat_d"] == "Warm Cool", "Dual Climate", 
-  True, "Other"
-  )
-appraisals["ac"] = appraisals["ac"].replace({"Y": "Yes", "N": "No"})
 appraisals["num_units"] = conditional_map( 
   appraisals["num_units"] == 1, "1", 
   True, "2 or More"
