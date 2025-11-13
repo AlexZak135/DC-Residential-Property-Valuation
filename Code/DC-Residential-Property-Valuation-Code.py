@@ -131,4 +131,3 @@ houses = (
             .alias("floor_d")
           )
     )
-                                                              
