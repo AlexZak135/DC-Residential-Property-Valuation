@@ -1,6 +1,6 @@
 # Title: DC Residential Property Valuation Analysis
 # Author: Alexander Zakrzeski
-# Date: November 11, 2025
+# Date: November 12, 2025
 
 # Part 1: Setup and Configuration
 
@@ -30,10 +30,9 @@ houses = (
       # Filter, modify the values of existing columns, and create new columns
       .filter(pl.col("bathrms").is_between(1, 4) & 
               pl.col("hf_bathrms").is_between(0, 2) &
-              pl.col("heat_d").is_in(["Forced Air", "Hot Water Rad", "Ht Pump", 
+              pl.col("heat_d").is_in(["Forced Air", "Hot Water Rad", 
                                       "Warm Cool"]) &
               ~(((pl.col("heat_d") == "Forced Air") & (pl.col("ac") == "N")) |
-                ((pl.col("heat_d") == "Ht Pump") & (pl.col("ac") == "N")) |
                 ((pl.col("heat_d") == "Warm Cool") & (pl.col("ac") == "N"))) &
               pl.col("ac").is_in(["N", "Y"]) &
               (pl.col("num_units") == 1) &
@@ -87,41 +86,104 @@ houses = (
           (pl.col("bathrms") + (pl.col("hf_bathrms") * 0.5))
              .alias("ttl_bathrms"),
           pl.when(pl.col("heat_d") == "Hot Water Rad")
-            .then(pl.lit("Hot Water"))
-            .when(pl.col("heat_d") == "Ht Pump") 
-            .then(pl.lit("Heat Pump"))
+            .then(pl.lit("Hot Water Radiator"))
             .when(pl.col("heat_d") == "Warm Cool")
-            .then(pl.lit("Dual Climate"))
+            .then(pl.lit("Dual"))
             .otherwise("heat_d")
-            .alias("heat_d") ,
+            .alias("heat_d"),
           pl.when(pl.col("ac") == "Y")
             .then(pl.lit("Yes"))
             .otherwise(pl.lit("No")) 
-            .alias("ac")     
+            .alias("ac")
+          )
+    )
+                  
+                  
+ 
+ 
+                            
+          (pl.col("sale_date")
+             .str.split(" ").list.first()
+             .str.to_date(format = "%Y/%m/%d")
+             .dt.year() - pl.col("ayb"))
+             .alias("age"), 
+          pl.when(pl.col("yr_rmdl").is_not_null())
+            .then(pl.lit("Yes"))
+            .otherwise(pl.lit("No"))
+            .alias("rmdl"),
+          pl.col("sale_date")
+            .str.split(" ").list.first().str.to_date(format = "%Y/%m/%d")
+            .alias("sale_date"),
+          pl.col("sale_date")
+            .str.split(" ").list.first()
+            .str.to_date(format = "%Y/%m/%d")
+            .dt.month()
+            .map_elements(lambda x: ["January", "February", "March", "April", 
+                                     "May", "June", "July", "August", 
+                                     "September", "October", "November", 
+                                     "December"][x - 1], 
+                          return_dtype = pl.Utf8)
+            .alias("sale_month"),        
+          pl.when(pl.col("style_d") == "1.5 Story Fin")
+            .then(pl.lit("1.5 Stories"))
+            .when(pl.col("style_d") == "2 Story") 
+            .then(pl.lit("2 Stories"))
+            .when(pl.col("style_d") == "2.5 Story Fin")
+            .then(pl.lit("2.5 Stories"))
+            .when(pl.col("style_d") == "3 Story")
+            .then(pl.lit("3 Stories"))
+            .otherwise("style_d")
+            .alias("style_d"),
+          pl.when(pl.col("extwall_d") == "Common Brick") 
+            .then(pl.lit("Brick")) 
+            .when(pl.col("extwall_d") == "Brick/Siding")   
+            .then(pl.lit("Brick and Siding")) 
+            .when(pl.col("extwall_d") == "Vinyl Siding")  
+            .then(pl.lit("Vinyl")) 
+            .when(pl.col("extwall_d") == "Wood Siding")  
+            .then(pl.lit("Wood"))
+            .otherwise("extwall_d")
+            .alias("extwall_d"),
+          pl.when(pl.col("roof_d") == "Comp Shingle") 
+            .then(pl.lit("Composition Shingle"))  
+            .when(pl.col("roof_d") == "Metal- Sms") 
+            .then(pl.lit("Metal"))
+            .when(pl.col("roof_d") == "Built Up") 
+            .then(pl.lit("Built-Up"))
+            .otherwise("roof_d")
+            .alias("roof_d"),
+          pl.when(pl.col("floor_d") == "Hardwood/Carp")
+            .then(pl.lit("Hardwood and Carpet"))
+            .otherwise("floor_d")
+            .alias("floor_d")
           )
     )
 
 
-
+                                                                   
 ################################################################################
-houses.select(pl.col().value_counts(sort = True))
+houses.select(pl.col().value_counts())
+houses.select(pl.col()).unique().sort()
 
-appraisals["num_units"] = conditional_map( 
-  appraisals["num_units"] == 1, "1", 
-  True, "2 or More"
-  )
-appraisals["rooms"] = conditional_map( 
-  appraisals["rooms"] <= 5, "5 or Fewer", 
- (appraisals["rooms"] >= 6) & (appraisals["rooms"] <= 9), 
-  remove_dot_zero(appraisals["rooms"]), 
-  appraisals["rooms"] >= 10, "10 or More"  
-  ) 
-appraisals["bedrms"] = conditional_map( 
-  appraisals["bedrms"] <= 2, "2 or Fewer", 
- (appraisals["bedrms"] >= 3) & (appraisals["bedrms"] <= 4), 
-  remove_dot_zero(appraisals["bedrms"]),
-  appraisals["bedrms"] >= 5, "5 or More"
-  )
+"ayb"
+"yr_rmdl"
+"stories"
+"sale_date"
+"price"
+"qualified"
+"sale_num"
+"gba"
+"bldg_num"
+"style_d"
+"struct_d"
+"extwall_d"
+"roof_d"
+"floor_d"
+"kitchens"
+"fireplaces"
+"usecode"
+"landarea"
+
 appraisals["age"] = conditional_map(
   pd.to_datetime(appraisals["saledate"]).dt.year - appraisals["ayb"] <= 10, 
   "10 or Fewer",
@@ -200,35 +262,3 @@ appraisals["landarea"] = conditional_map(
   "2,000 to 4,999", 
   appraisals["landarea"] >= 5000, "5,000 or More"
   )
-
-# Load the data from the CSV file
-addresses = pd.read_csv("DC-Addresses-Data.csv", usecols = ["WARD", "SSL"])
-
-# Rename columns, drop rows with missing values, and modify values of columns
-addresses = addresses.rename(columns = str.lower).dropna()
-addresses["ward"] = addresses["ward"].str.replace(r"^Ward ", "", regex = True)
-addresses["ssl"] = addresses["ssl"].str.replace(r"\s{2,}", " ", regex = True)
-
-# Drop duplicates, reset the index, and reorder the column
-addresses = addresses.drop_duplicates().reset_index(drop = True)
-addresses.insert(0, "ssl", addresses.pop("ssl"))
-
-# Perform a left join, drop rows with missing values, and drop columns
-appraisals = (appraisals.
-  merge(addresses, on = "ssl", how = "left").
-  dropna(subset = "ward").
-  drop(columns = ["ssl", "bathrms", "hf_bathrms", "ayb", "yr_rmdl", 
-                  "qualified", "sale_num", "gba", "bldg_num", "style_d", 
-                  "struct_d", "usecode", "saledate_ym"])) 
-
-# Reorder the columns, sort the rows in ascending order, and reset the index
-appraisals.insert(0, "saledate", appraisals.pop("saledate"))
-appraisals.insert(1, "saledate_y", appraisals.pop("saledate_y"))
-appraisals.insert(2, "ward", appraisals.pop("ward"))
-appraisals.insert(3, "age", appraisals.pop("age"))
-appraisals.insert(4, "rmdl", appraisals.pop("rmdl"))
-appraisals.insert(5, "ttl_bathrms", appraisals.pop("ttl_bathrms"))
-appraisals.insert(19, "price", appraisals.pop("price"))
-appraisals.insert(20, "log_price", appraisals.pop("log_price"))
-appraisals.insert(12, "log_gba", appraisals.pop("log_gba"))
-appraisals = appraisals.sort_values(by = "saledate").reset_index(drop = True)
