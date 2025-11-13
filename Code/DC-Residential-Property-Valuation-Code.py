@@ -1,6 +1,6 @@
 # Title: DC Residential Property Valuation Analysis
 # Author: Alexander Zakrzeski
-# Date: November 12, 2025
+# Date: November 13, 2025
 
 # Part 1: Setup and Configuration
 
@@ -40,15 +40,13 @@ houses = (
               (pl.col("rooms") >= pl.col("bedrms")) & 
               pl.col("bedrms").is_between(2, 6) & 
               pl.col("ayb").is_between(1_890, 2_025) & 
-              (pl.col("ayb") <= pl.col("sale_date")
-                                  .str.split(" ").list.first()             
-                                  .str.to_date(format = "%Y/%m/%d")
-                                  .dt.year()) &
+              (pl.col("ayb") <= pl.col("sale_date") 
+                                  .str.split(" ").list.first()
+                                  .str.to_date("%Y/%m/%d").dt.year()) &
               ((pl.col("yr_rmdl").is_between(pl.col("ayb"), 2_025) &
                 (pl.col("yr_rmdl") <= pl.col("sale_date")
                                         .str.split(" ").list.first()
-                                        .str.to_date(format = "%Y/%m/%d")
-                                        .dt.year())) | 
+                                        .str.to_date("%Y/%m/%d").dt.year())) | 
                pl.col("yr_rmdl").is_null()) &
               (((pl.col("stories") == 1) & (pl.col("style_d") == "1 Story")) |
                ((pl.col("stories") == 1.5) & 
@@ -58,8 +56,7 @@ houses = (
                 (pl.col("style_d") == "2.5 Story Fin")) |
                ((pl.col("stories") == 3) & (pl.col("style_d") == "3 Story"))) &
               (pl.col("sale_date")
-                 .str.split(" ").list.first()
-                 .str.to_date(format = "%Y/%m/%d")
+                 .str.split(" ").list.first().str.to_date("%Y/%m/%d")
                  .is_between(pl.date(2_019, 1, 1), pl.date(2_025, 5, 9))) &
               pl.col("price").is_between(300_000, 3_250_000) & 
               (pl.col("qualified") == "Q") &
@@ -94,58 +91,34 @@ houses = (
           pl.when(pl.col("ac") == "Y")
             .then(pl.lit("Yes"))
             .otherwise(pl.lit("No")) 
-            .alias("ac")
-          )
-    )
-                  
-                  
- 
- 
-                            
-          (pl.col("sale_date")
-             .str.split(" ").list.first()
-             .str.to_date(format = "%Y/%m/%d")
-             .dt.year() - pl.col("ayb"))
-             .alias("age"), 
+            .alias("ac"),
+          (pl.col("sale_date")       
+             .str.split(" ").list.first().str.to_date("%Y/%m/%d").dt.year() - 
+           pl.col("ayb"))
+             .alias("age"),
           pl.when(pl.col("yr_rmdl").is_not_null())
             .then(pl.lit("Yes"))
             .otherwise(pl.lit("No"))
             .alias("rmdl"),
           pl.col("sale_date")
-            .str.split(" ").list.first().str.to_date(format = "%Y/%m/%d")
+            .str.split(" ").list.first().str.to_date("%Y/%m/%d")        
             .alias("sale_date"),
-          pl.col("sale_date")
+          pl.col("sale_date") 
             .str.split(" ").list.first()
-            .str.to_date(format = "%Y/%m/%d")
-            .dt.month()
-            .map_elements(lambda x: ["January", "February", "March", "April", 
-                                     "May", "June", "July", "August", 
-                                     "September", "October", "November", 
-                                     "December"][x - 1], 
-                          return_dtype = pl.Utf8)
-            .alias("sale_month"),        
-          pl.when(pl.col("style_d") == "1.5 Story Fin")
-            .then(pl.lit("1.5 Stories"))
-            .when(pl.col("style_d") == "2 Story") 
-            .then(pl.lit("2 Stories"))
-            .when(pl.col("style_d") == "2.5 Story Fin")
-            .then(pl.lit("2.5 Stories"))
-            .when(pl.col("style_d") == "3 Story")
-            .then(pl.lit("3 Stories"))
-            .otherwise("style_d")
-            .alias("style_d"),
-          pl.when(pl.col("extwall_d") == "Common Brick") 
-            .then(pl.lit("Brick")) 
-            .when(pl.col("extwall_d") == "Brick/Siding")   
-            .then(pl.lit("Brick and Siding")) 
-            .when(pl.col("extwall_d") == "Vinyl Siding")  
-            .then(pl.lit("Vinyl")) 
+            .str.to_date("%Y/%m/%d").dt.strftime("%B") 
+            .alias("sale_month"),
+          pl.when(pl.col("extwall_d") == "Common Brick")
+            .then(pl.lit("Brick"))
+            .when(pl.col("extwall_d") == "Brick/Siding")
+            .then(pl.lit("Brick and Siding"))
+            .when(pl.col("extwall_d") == "Vinyl Siding")
+            .then(pl.lit("Vinyl"))
             .when(pl.col("extwall_d") == "Wood Siding")  
             .then(pl.lit("Wood"))
             .otherwise("extwall_d")
             .alias("extwall_d"),
-          pl.when(pl.col("roof_d") == "Comp Shingle") 
-            .then(pl.lit("Composition Shingle"))  
+          pl.when(pl.col("roof_d") == "Comp Shingle")
+            .then(pl.lit("Composition Shingle"))
             .when(pl.col("roof_d") == "Metal- Sms") 
             .then(pl.lit("Metal"))
             .when(pl.col("roof_d") == "Built Up") 
@@ -158,107 +131,4 @@ houses = (
             .alias("floor_d")
           )
     )
-
-
-                                                                   
-################################################################################
-houses.select(pl.col().value_counts())
-houses.select(pl.col()).unique().sort()
-
-"ayb"
-"yr_rmdl"
-"stories"
-"sale_date"
-"price"
-"qualified"
-"sale_num"
-"gba"
-"bldg_num"
-"style_d"
-"struct_d"
-"extwall_d"
-"roof_d"
-"floor_d"
-"kitchens"
-"fireplaces"
-"usecode"
-"landarea"
-
-appraisals["age"] = conditional_map(
-  pd.to_datetime(appraisals["saledate"]).dt.year - appraisals["ayb"] <= 10, 
-  "10 or Fewer",
-((pd.to_datetime(appraisals["saledate"]).dt.year - appraisals["ayb"] >= 11) &
- (pd.to_datetime(appraisals["saledate"]).dt.year - appraisals["ayb"] <= 60)),
-  "11 to 60",  
-((pd.to_datetime(appraisals["saledate"]).dt.year - appraisals["ayb"] >= 61) &
- (pd.to_datetime(appraisals["saledate"]).dt.year - appraisals["ayb"] <= 70)), 
-  "61 to 70",
-((pd.to_datetime(appraisals["saledate"]).dt.year - appraisals["ayb"] >= 71) & 
- (pd.to_datetime(appraisals["saledate"]).dt.year - appraisals["ayb"] <= 80)), 
-  "71 to 80",
-((pd.to_datetime(appraisals["saledate"]).dt.year - appraisals["ayb"] >= 81) &
- (pd.to_datetime(appraisals["saledate"]).dt.year - appraisals["ayb"] <= 90)), 
-  "81 to 90",
-((pd.to_datetime(appraisals["saledate"]).dt.year - appraisals["ayb"] >= 91) &
- (pd.to_datetime(appraisals["saledate"]).dt.year - appraisals["ayb"] <= 100)), 
-  "91 to 100", 
-((pd.to_datetime(appraisals["saledate"]).dt.year - appraisals["ayb"] >= 101) &
- (pd.to_datetime(appraisals["saledate"]).dt.year - appraisals["ayb"] <= 110)), 
-  "101 to 110", 
-  pd.to_datetime(appraisals["saledate"]).dt.year - appraisals["ayb"] >= 111, 
-  "111 or More"  
-  ) 
-appraisals["rmdl"] = conditional_map( 
- ~appraisals["yr_rmdl"].isna(), "Yes",
-  True, "No" 
-  )
-appraisals["stories"] = conditional_map( 
-  appraisals["stories"] <= 2, "2 or Fewer",
-  True, "2.5 or More"
-  )
-appraisals["saledate"] = pd.to_datetime(appraisals["saledate"]).dt.date
-appraisals["saledate_ym"] = (pd.to_datetime(appraisals["saledate"]). 
-                             dt.to_period("M").dt.start_time.dt.date)
-appraisals["saledate_y"] = conditional_map( 
-  pd.to_datetime(appraisals["saledate"]).dt.year.isin([2023, 2024]), "2023+", 
-  True, pd.to_datetime(appraisals["saledate"]).dt.year.astype(str) 
-  )
-appraisals["log_price"] = np.log(appraisals["price"])
-appraisals["log_gba"] = np.log(appraisals["gba"])
-appraisals["extwall_d"] = conditional_map( 
-  appraisals["extwall_d"].isin(["Brick Veneer", "Brick/Siding", "Brick/Stone", 
-                                "Brick/Stucco", "Common Brick", 
-                                "Face Brick"]), "Brick", 
-  appraisals["extwall_d"].isin(["Shingle", "Stucco", "Vinyl Siding", 
-                                "Wood Siding"]), "Siding and Stucco", 
-  appraisals["extwall_d"].isin(["Stone", "Stone Veneer", "Stone/Siding", 
-                                "Stone/Stucco"]), "Stone" 
-  )
-appraisals["roof_d"] = conditional_map( 
-  appraisals["roof_d"].isin(["Clay Tile", "Slate"]), "Tile",
-  appraisals["roof_d"].isin(["Comp Shingle", "Composition Ro", "Shake", 
-                             "Shingle"]), "Shingle", 
-  appraisals["roof_d"].isin(["Metal- Cpr", "Metal- Pre", 
-                             "Metal- Sms"]), "Metal",
-  appraisals["roof_d"] == "Built Up", "Flat"  
-  )
-appraisals["floor_d"] = conditional_map( 
-  appraisals["floor_d"].isin(["Carpet", "Vinyl Sheet"]), "Soft", 
-  True, "Hard"
-  )
-appraisals["kitchens"] = conditional_map( 
-  appraisals["kitchens"] == 1, "1",   
-  True, "2 or More" 
-  )
-appraisals["fireplaces"] = conditional_map( 
-  appraisals["fireplaces"] <= 1, remove_dot_zero(appraisals["fireplaces"]),  
-  True, "2 or More" 
-  )
-appraisals["landarea"] = conditional_map( 
-  appraisals["landarea"] <= 999, "999 or Fewer",  
- (appraisals["landarea"] >= 1000) & (appraisals["landarea"] <= 1999),
-  "1,000 to 1,999",
- (appraisals["landarea"] >= 2000) & (appraisals["landarea"] <= 4999), 
-  "2,000 to 4,999", 
-  appraisals["landarea"] >= 5000, "5,000 or More"
-  )
+                                                              
