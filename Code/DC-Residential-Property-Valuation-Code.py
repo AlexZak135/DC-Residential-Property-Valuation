@@ -79,7 +79,7 @@ houses = (
               pl.col("fireplaces").is_between(0, 3) &
               pl.col("landarea").is_between(400, 15_000))
       .with_columns(
-          pl.col("ssl").str.replace_all(r"\s{2,}", " ").alias("ssl"),
+          pl.col("ssl").str.replace(r"\s{2,}", " ").alias("ssl"),
           (pl.col("bathrms") + (pl.col("hf_bathrms") * 0.5))
              .alias("ttl_bathrms"),
           pl.when(pl.col("heat_d") == "Hot Water Rad")
@@ -131,3 +131,46 @@ houses = (
             .alias("floor_d")
           )
     )
+
+address_points = pl.read_parquet("DC-Address-Points-Data.parquet")
+address_points = address_points.rename(str.lower)
+address_points = address_points.rename({"zipcode": "zip_code"})
+address_points = address_points.select("ward", "zip_code", "quadrant", "anc", 
+                                       "smd", "latitude", "longitude", "ssl")
+address_points = address_points.drop_nulls("ssl")
+address_points = address_points.with_columns(pl.col("ward").str.replace(r"^Ward ", "").cast(pl.Int64).alias("ward"))
+address_points = address_points.with_columns(pl.col("zip_code").cast(pl.Utf8).alias("zip_code"))
+
+
+
+# Load the data from the CSV file
+addresses = pd.read_csv("DC-Addresses-Data.csv", usecols = ["WARD", "SSL"])
+
+# Rename columns, drop rows with missing values, and modify values of columns
+addresses = addresses.rename(columns = str.lower).dropna()
+addresses["ward"] = addresses["ward"].str.replace(r"^Ward ", "", regex = True)
+addresses["ssl"] = addresses["ssl"].str.replace(r"\s{2,}", " ", regex = True)
+
+# Drop duplicates, reset the index, and reorder the column
+addresses = addresses.drop_duplicates().reset_index(drop = True)
+addresses.insert(0, "ssl", addresses.pop("ssl"))
+
+# Perform a left join, drop rows with missing values, and drop columns
+appraisals = (appraisals.
+  merge(addresses, on = "ssl", how = "left").
+  dropna(subset = "ward").
+  drop(columns = ["ssl", "bathrms", "hf_bathrms", "ayb", "yr_rmdl", 
+                  "qualified", "sale_num", "gba", "bldg_num", "style_d", 
+                  "struct_d", "usecode", "saledate_ym"])) 
+
+# Reorder the columns, sort the rows in ascending order, and reset the index
+appraisals.insert(0, "saledate", appraisals.pop("saledate"))
+appraisals.insert(1, "saledate_y", appraisals.pop("saledate_y"))
+appraisals.insert(2, "ward", appraisals.pop("ward"))
+appraisals.insert(3, "age", appraisals.pop("age"))
+appraisals.insert(4, "rmdl", appraisals.pop("rmdl"))
+appraisals.insert(5, "ttl_bathrms", appraisals.pop("ttl_bathrms"))
+appraisals.insert(19, "price", appraisals.pop("price"))
+appraisals.insert(20, "log_price", appraisals.pop("log_price"))
+appraisals.insert(12, "log_gba", appraisals.pop("log_gba"))
+appraisals = appraisals.sort_values(by = "saledate").reset_index(drop = True)
