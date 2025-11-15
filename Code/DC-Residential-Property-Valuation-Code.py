@@ -1,6 +1,6 @@
 # Title: DC Residential Property Valuation Analysis
 # Author: Alexander Zakrzeski
-# Date: November 13, 2025
+# Date: November 14, 2025
 
 # Part 1: Setup and Configuration
 
@@ -132,24 +132,64 @@ houses = (
           )
     )
 
+
+
 address_points = pl.read_parquet("DC-Address-Points-Data.parquet")
 address_points = address_points.rename(str.lower)
 address_points = address_points.rename({"zipcode": "zip_code"})
+
+
+
+################################################################################
+address_points = address_points.select("ward", "zip_code", "quadrant", "anc", 
+                                       "smd", "latitude", "longitude", "ssl",
+                                       "housing_unit_count", "status")
+address_points = address_points.unique(maintain_order = True)
+address_points = address_points.filter((pl.col("quadrant") != "BN") &
+                                       pl.col("zip_code").is_not_null() & 
+                                       pl.col("ssl").is_not_null())
+address_points = address_points.filter((pl.col("housing_unit_count") == 1) &
+                                       (pl.col("status") == "ACTIVE"))
+################################################################################
+
 address_points = address_points.select("ward", "zip_code", "quadrant", "anc", 
                                        "smd", "latitude", "longitude", "ssl")
-address_points = address_points.drop_nulls("ssl")
-address_points = address_points.with_columns(pl.col("ward").str.replace(r"^Ward ", "").cast(pl.Int64).alias("ward"))
+address_points = address_points.unique(maintain_order = True)
+address_points = address_points.filter((pl.col("quadrant") != "BN") &
+                                       pl.col("zip_code").is_not_null() & 
+                                       pl.col("ssl").is_not_null())
+
+address_points = address_points.with_columns(pl.col("ward").str.replace(r"^Ward ", "").alias("ward"))
 address_points = address_points.with_columns(pl.col("zip_code").cast(pl.Utf8).alias("zip_code"))
+address_points = address_points.with_columns(pl.when(pl.col("quadrant") == "NE").then(pl.lit("Northeast"))
+                                               .when(pl.col("quadrant") == "NW").then(pl.lit("Northwest"))
+                                               .when(pl.col("quadrant") == "SE").then(pl.lit("Southeast"))
+                                               .when(pl.col("quadrant") == "SW").then(pl.lit("Southwest"))
+                                               .alias("quadrant"))
+address_points = address_points.with_columns(pl.col("ssl").str.replace(r"\s{2,}", " ").alias("ssl"))
 
 
 
-# Load the data from the CSV file
-addresses = pd.read_csv("DC-Addresses-Data.csv", usecols = ["WARD", "SSL"])
 
-# Rename columns, drop rows with missing values, and modify values of columns
-addresses = addresses.rename(columns = str.lower).dropna()
-addresses["ward"] = addresses["ward"].str.replace(r"^Ward ", "", regex = True)
-addresses["ssl"] = addresses["ssl"].str.replace(r"\s{2,}", " ", regex = True)
+houses.select(pl.col("ssl").is_duplicated()).sum()
+
+
+
+
+#####
+
+
+address_points = address_points.select("ward", "zip_code", "quadrant", "anc", 
+                                       "smd", "latitude", "longitude", "ssl")
+address_points.is_duplicated().sum()
+adress_
+
+
+len(houses)
+houses.join(address_points, on = "ssl", how = "inner").filter(pl.col("ssl").is_duplicated()).sort("ssl")
+
+
+
 
 # Drop duplicates, reset the index, and reorder the column
 addresses = addresses.drop_duplicates().reset_index(drop = True)
