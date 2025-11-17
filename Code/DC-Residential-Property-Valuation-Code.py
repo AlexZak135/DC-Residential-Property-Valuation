@@ -1,6 +1,6 @@
 # Title: DC Residential Property Valuation Analysis
 # Author: Alexander Zakrzeski
-# Date: November 16, 2025
+# Date: November 17, 2025
 
 # Part 1: Setup and Configuration
 
@@ -132,28 +132,29 @@ houses = (
           )
     )
 
-
-
-address_points = pl.read_parquet("DC-Address-Points-Data.parquet")
-address_points = address_points.rename(str.lower)
-address_points = address_points.rename({"zipcode": "zip_code"})
-address_points = address_points.filter((pl.col("status") == "ACTIVE") &
-                                       (pl.col("housing_unit_count") == 1))
-address_points = address_points.select("ssl", "ward", "anc", "smd", "quadrant",
-                                       "zip_code", "latitude", "longitude")
-address_points = address_points.with_columns(pl.col("ssl").str.replace(r"\s{2,}", " ").alias("ssl"))
-address_points = address_points.with_columns(pl.col("ward").str.replace(r"^Ward ", "").alias("ward"))
-address_points = address_points.with_columns(pl.col("anc").str.replace(r"^ANC ", "").alias("anc"))
-address_points = address_points.with_columns(pl.col("smd").str.replace(r"^SMD ", "").alias("smd"))
-address_points = address_points.with_columns(pl.when(pl.col("quadrant") == "NE").then(pl.lit("Northeast"))
-                                               .when(pl.col("quadrant") == "NW").then(pl.lit("Northwest"))
-                                               .when(pl.col("quadrant") == "SE").then(pl.lit("Southeast"))
-                                               .when(pl.col("quadrant") == "SW").then(pl.lit("Southwest"))
-                                               .alias("quadrant"))
-address_points = address_points.with_columns(pl.col("zip_code").cast(pl.Utf8).alias("zip_code"))
-address_points = address_points.join(houses.select("ssl"), on = "ssl", how = "inner")
-address_points = address_points.unique(["ssl", "ward", "anc", "smd", "quadrant", "zip_code"])
-
-################################################################################
-address_points.select("ssl").is_duplicated().sum()
-################################################################################
+# Load the data from the Parquet file, rename columns, and select columns
+houses_geo = (
+    pl.read_parquet("DC-Address-Points-Data.parquet")
+      .rename(str.lower)
+      .rename({"zipcode": "zip_code"})
+      .select("ssl", "ward", "quadrant", "zip_code", "latitude", "longitude")
+      # Modify the values of existing columns and perform an inner join
+      .with_columns(
+          pl.col("ssl").str.replace(r"\s{2,}", " ").alias("ssl"),
+          pl.col("ward").str.replace(r"^Ward ", "").alias("ward"),
+          pl.when(pl.col("quadrant") == "NE")
+            .then(pl.lit("Northeast"))
+            .when(pl.col("quadrant") == "NW")
+            .then(pl.lit("Northwest"))
+            .when(pl.col("quadrant") == "SE")
+            .then(pl.lit("Southeast"))
+            .when(pl.col("quadrant") == "SW")
+            .then(pl.lit("Southwest"))
+            .otherwise(None)
+            .alias("quadrant"),
+          pl.col("zip_code").cast(pl.Utf8).alias("zip_code")   
+     ).join(houses.select("ssl"), on = "ssl", how = "inner")
+      # Remove duplicates
+      .unique(["ssl", "ward", "quadrant", "zip_code"])    
+    )
+   
