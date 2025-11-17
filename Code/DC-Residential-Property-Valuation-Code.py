@@ -1,6 +1,6 @@
 # Title: DC Residential Property Valuation Analysis
 # Author: Alexander Zakrzeski
-# Date: November 14, 2025
+# Date: November 16, 2025
 
 # Part 1: Setup and Configuration
 
@@ -137,80 +137,23 @@ houses = (
 address_points = pl.read_parquet("DC-Address-Points-Data.parquet")
 address_points = address_points.rename(str.lower)
 address_points = address_points.rename({"zipcode": "zip_code"})
-
-
-
-################################################################################
-address_points = address_points.select("ward", "zip_code", "quadrant", "anc", 
-                                       "smd", "latitude", "longitude", "ssl",
-                                       "housing_unit_count", "status")
-address_points = address_points.unique(maintain_order = True)
-address_points = address_points.filter((pl.col("quadrant") != "BN") &
-                                       pl.col("zip_code").is_not_null() & 
-                                       pl.col("ssl").is_not_null())
-address_points = address_points.filter((pl.col("housing_unit_count") == 1) &
-                                       (pl.col("status") == "ACTIVE"))
-################################################################################
-
-address_points = address_points.select("ward", "zip_code", "quadrant", "anc", 
-                                       "smd", "latitude", "longitude", "ssl")
-address_points = address_points.unique(maintain_order = True)
-address_points = address_points.filter((pl.col("quadrant") != "BN") &
-                                       pl.col("zip_code").is_not_null() & 
-                                       pl.col("ssl").is_not_null())
-
+address_points = address_points.filter((pl.col("status") == "ACTIVE") &
+                                       (pl.col("housing_unit_count") == 1))
+address_points = address_points.select("ssl", "ward", "anc", "smd", "quadrant",
+                                       "zip_code", "latitude", "longitude")
+address_points = address_points.with_columns(pl.col("ssl").str.replace(r"\s{2,}", " ").alias("ssl"))
 address_points = address_points.with_columns(pl.col("ward").str.replace(r"^Ward ", "").alias("ward"))
-address_points = address_points.with_columns(pl.col("zip_code").cast(pl.Utf8).alias("zip_code"))
+address_points = address_points.with_columns(pl.col("anc").str.replace(r"^ANC ", "").alias("anc"))
+address_points = address_points.with_columns(pl.col("smd").str.replace(r"^SMD ", "").alias("smd"))
 address_points = address_points.with_columns(pl.when(pl.col("quadrant") == "NE").then(pl.lit("Northeast"))
                                                .when(pl.col("quadrant") == "NW").then(pl.lit("Northwest"))
                                                .when(pl.col("quadrant") == "SE").then(pl.lit("Southeast"))
                                                .when(pl.col("quadrant") == "SW").then(pl.lit("Southwest"))
                                                .alias("quadrant"))
-address_points = address_points.with_columns(pl.col("ssl").str.replace(r"\s{2,}", " ").alias("ssl"))
+address_points = address_points.with_columns(pl.col("zip_code").cast(pl.Utf8).alias("zip_code"))
+address_points = address_points.join(houses.select("ssl"), on = "ssl", how = "inner")
+address_points = address_points.unique(["ssl", "ward", "anc", "smd", "quadrant", "zip_code"])
 
-
-
-
-houses.select(pl.col("ssl").is_duplicated()).sum()
-
-
-
-
-#####
-
-
-address_points = address_points.select("ward", "zip_code", "quadrant", "anc", 
-                                       "smd", "latitude", "longitude", "ssl")
-address_points.is_duplicated().sum()
-adress_
-
-
-len(houses)
-houses.join(address_points, on = "ssl", how = "inner").filter(pl.col("ssl").is_duplicated()).sort("ssl")
-
-
-
-
-# Drop duplicates, reset the index, and reorder the column
-addresses = addresses.drop_duplicates().reset_index(drop = True)
-addresses.insert(0, "ssl", addresses.pop("ssl"))
-
-# Perform a left join, drop rows with missing values, and drop columns
-appraisals = (appraisals.
-  merge(addresses, on = "ssl", how = "left").
-  dropna(subset = "ward").
-  drop(columns = ["ssl", "bathrms", "hf_bathrms", "ayb", "yr_rmdl", 
-                  "qualified", "sale_num", "gba", "bldg_num", "style_d", 
-                  "struct_d", "usecode", "saledate_ym"])) 
-
-# Reorder the columns, sort the rows in ascending order, and reset the index
-appraisals.insert(0, "saledate", appraisals.pop("saledate"))
-appraisals.insert(1, "saledate_y", appraisals.pop("saledate_y"))
-appraisals.insert(2, "ward", appraisals.pop("ward"))
-appraisals.insert(3, "age", appraisals.pop("age"))
-appraisals.insert(4, "rmdl", appraisals.pop("rmdl"))
-appraisals.insert(5, "ttl_bathrms", appraisals.pop("ttl_bathrms"))
-appraisals.insert(19, "price", appraisals.pop("price"))
-appraisals.insert(20, "log_price", appraisals.pop("log_price"))
-appraisals.insert(12, "log_gba", appraisals.pop("log_gba"))
-appraisals = appraisals.sort_values(by = "saledate").reset_index(drop = True)
+################################################################################
+address_points.select("ssl").is_duplicated().sum()
+################################################################################
