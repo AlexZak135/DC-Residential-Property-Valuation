@@ -157,4 +157,3 @@ houses_geo = (
       # Remove duplicates
       .unique(["ssl", "ward", "quadrant", "zip_code"])    
     )
-   
