@@ -1,6 +1,6 @@
 # Title: DC Residential Property Valuation Analysis
 # Author: Alexander Zakrzeski
-# Date: November 17, 2025
+# Date: November 18, 2025
 
 # Part 1: Setup and Configuration
 
@@ -129,45 +129,30 @@ houses = (
             .then(pl.lit("Hardwood and Carpet"))
             .otherwise("floor_d")
             .alias("floor_d")
-          )
+     # Perform an inner join
+     ).join(# Load the data from the Parquet file and rename columns
+            pl.read_parquet("DC-Address-Points-Data.parquet")
+              .rename(str.lower)
+              # Select columns and modify the values of existing columns
+              .select("ssl", "ward", "quadrant", "latitude", "longitude")
+              .with_columns(
+                  pl.col("ssl").str.replace(r"\s{2,}", " ").alias("ssl"),
+                  pl.col("ward").str.replace(r"^Ward ", "").alias("ward"),
+                  pl.when(pl.col("quadrant") == "NE")
+                    .then(pl.lit("Northeast"))
+                    .when(pl.col("quadrant") == "NW")
+                    .then(pl.lit("Northwest"))
+                    .when(pl.col("quadrant") == "SE")
+                    .then(pl.lit("Southeast"))
+                    .when(pl.col("quadrant") == "SW")
+                    .then(pl.lit("Southwest"))
+                    .otherwise(None)
+                    .alias("quadrant")    
+             # Remove duplicates                    
+             ).unique(["ssl", "ward", "quadrant"]), 
+            on = "ssl", how = "inner")
     )
-
-
-
-
-
-
-# Load the data from the Parquet file, rename columns, and select columns
-houses_geo = (
-    pl.read_parquet("DC-Address-Points-Data.parquet")
-      .rename(str.lower)
-      .select("ssl", "ward", "quadrant", "latitude", "longitude")
-      # Modify the values of existing columns and perform an inner join
-      .with_columns(
-          pl.col("ssl").str.replace(r"\s{2,}", " ").alias("ssl"),
-          pl.col("ward").str.replace(r"^Ward ", "").alias("ward"),
-          pl.when(pl.col("quadrant") == "NE")
-            .then(pl.lit("Northeast"))
-            .when(pl.col("quadrant") == "NW")
-            .then(pl.lit("Northwest"))
-            .when(pl.col("quadrant") == "SE")
-            .then(pl.lit("Southeast"))
-            .when(pl.col("quadrant") == "SW")
-            .then(pl.lit("Southwest"))
-            .otherwise(None)
-            .alias("quadrant")                 
-     ).join(houses.select("ssl"), on = "ssl", how = "inner") ###REMOVE###
-      # Remove duplicates
-      .unique(["ssl", "ward", "quadrant"])    
-    )
-
-
-
-
-
-
-# Perform an inner join
-houses = houses.join(houses_geo, on = "ssl", how = "inner").sort()
+                
 
 
 
