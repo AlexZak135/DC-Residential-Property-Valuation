@@ -132,12 +132,16 @@ houses = (
           )
     )
 
+
+
+
+
+
 # Load the data from the Parquet file, rename columns, and select columns
 houses_geo = (
     pl.read_parquet("DC-Address-Points-Data.parquet")
       .rename(str.lower)
-      .rename({"zipcode": "zip_code"})
-      .select("ssl", "ward", "quadrant", "zip_code", "latitude", "longitude")
+      .select("ssl", "ward", "quadrant", "latitude", "longitude")
       # Modify the values of existing columns and perform an inner join
       .with_columns(
           pl.col("ssl").str.replace(r"\s{2,}", " ").alias("ssl"),
@@ -151,9 +155,42 @@ houses_geo = (
             .when(pl.col("quadrant") == "SW")
             .then(pl.lit("Southwest"))
             .otherwise(None)
-            .alias("quadrant"),
-          pl.col("zip_code").cast(pl.Utf8).alias("zip_code")   
-     ).join(houses.select("ssl"), on = "ssl", how = "inner")
+            .alias("quadrant")                 
+     ).join(houses.select("ssl"), on = "ssl", how = "inner") ###REMOVE###
       # Remove duplicates
-      .unique(["ssl", "ward", "quadrant", "zip_code"])    
+      .unique(["ssl", "ward", "quadrant"])    
     )
+
+
+
+
+
+
+# Perform an inner join
+houses = houses.join(houses_geo, on = "ssl", how = "inner").sort()
+
+
+
+################################################################################
+
+import geopandas as gpd
+high_zones = gpd.read_file(("School_Attendance_Zones_(Senior_High)/School_Attendance_Zones_(Senior_High).shp"))
+high_zones = high_zones.rename(columns = str.lower)
+high_zones = high_zones[["name", "geometry"]]
+from shapely.geometry import Point
+houses_pd = houses_geo.to_pandas()
+houses_gdf = gpd.GeoDataFrame(
+    houses_pd,
+    geometry=gpd.points_from_xy(houses_pd.longitude, houses_pd.latitude),
+    crs="EPSG:4326"
+)
+high_zones = high_zones.to_crs("EPSG:4326")
+houses_with_zone = gpd.sjoin(
+    houses_gdf,
+    high_zones,
+    how="left",
+    predicate="within"
+)
+houses_with_zone = houses_with_zone.drop(columns=["geometry"])
+houses_with_zone_pl = pl.from_pandas(houses_with_zone)
+houses_with_zone_pl.select(pl.col("name").value_counts())
