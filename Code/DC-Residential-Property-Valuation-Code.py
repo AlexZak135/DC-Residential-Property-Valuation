@@ -1,6 +1,6 @@
 # Title: DC Residential Property Valuation Analysis
 # Author: Alexander Zakrzeski
-# Date: November 18, 2025
+# Date: November 19, 2025
 
 # Part 1: Setup and Configuration
 
@@ -130,12 +130,10 @@ houses = (
             .then(pl.lit("Hardwood and Carpet"))
             .otherwise("floor_d")
             .alias("floor_d")
-     # Perform an inner join and load the data from the Parquet file
+     # Perform an inner join with the Parquet file to include new columns
      ).join(pl.read_parquet("DC-Address-Points-Data.parquet")
-              # Rename columns and select columns
               .rename(str.lower)
               .select("ssl", "ward", "quadrant", "latitude", "longitude")
-              # Modify the values of existing columns and remove duplicates  
               .with_columns(
                   pl.col("ssl").str.replace(r"\s{2,}", " ").alias("ssl"),
                   pl.col("ward").str.replace(r"^Ward ", "").alias("ward"),
@@ -152,8 +150,8 @@ houses = (
              ).unique(["ssl", "ward", "quadrant"]), 
             on = "ssl", how = "inner")
     )
-                
-# Perform a spatial left join, rename a column, and drop columns
+                  
+# Perform a spatial left join with the shapefile to include a new column
 houses = (
     gpd.sjoin(gpd.GeoDataFrame(
                   houses.to_pandas(),
@@ -161,14 +159,13 @@ houses = (
                                                 houses.to_pandas()["latitude"]), 
                   crs = "EPSG:4326"
                   ),
-              gpd.read_file(("High-School-Attendance-Zones-Shapefile/" 
-                             "High-School-Attendance-Zones.shp"))
+              gpd.read_file("High-School-Attendance-Zones-Shapefile/"
+                            "High-School-Attendance-Zones.shp")
                  .rename(columns = str.lower)
                  [["geometry", "name"]]
                  .to_crs("EPSG:4326"),
               how = "left", predicate = "within")
        .rename(columns = {"name": "high_school"})
        .drop(columns = ["geometry", "index_right"])
-       # Convert to a Polars DataFrame
        .pipe(pl.from_pandas)
     )
