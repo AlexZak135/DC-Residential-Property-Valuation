@@ -5,6 +5,7 @@
 # Part 1: Setup and Configuration
 
 # Load to import, clean, and wrangle data
+import geopandas as gpd
 import os
 import polars as pl
 
@@ -129,12 +130,12 @@ houses = (
             .then(pl.lit("Hardwood and Carpet"))
             .otherwise("floor_d")
             .alias("floor_d")
-     # Perform an inner join
-     ).join(# Load the data from the Parquet file and rename columns
-            pl.read_parquet("DC-Address-Points-Data.parquet")
+     # Perform an inner join and load the data from the Parquet file
+     ).join(pl.read_parquet("DC-Address-Points-Data.parquet")
+              # Rename columns and select columns
               .rename(str.lower)
-              # Select columns and modify the values of existing columns
               .select("ssl", "ward", "quadrant", "latitude", "longitude")
+              # Modify the values of existing columns and remove duplicates  
               .with_columns(
                   pl.col("ssl").str.replace(r"\s{2,}", " ").alias("ssl"),
                   pl.col("ward").str.replace(r"^Ward ", "").alias("ward"),
@@ -147,35 +148,27 @@ houses = (
                     .when(pl.col("quadrant") == "SW")
                     .then(pl.lit("Southwest"))
                     .otherwise(None)
-                    .alias("quadrant")    
-             # Remove duplicates                    
+                    .alias("quadrant")                      
              ).unique(["ssl", "ward", "quadrant"]), 
             on = "ssl", how = "inner")
     )
                 
-
-
-
-################################################################################
-
-import geopandas as gpd
-high_zones = gpd.read_file(("School_Attendance_Zones_(Senior_High)/School_Attendance_Zones_(Senior_High).shp"))
-high_zones = high_zones.rename(columns = str.lower)
-high_zones = high_zones[["name", "geometry"]]
-from shapely.geometry import Point
-houses_pd = houses_geo.to_pandas()
-houses_gdf = gpd.GeoDataFrame(
-    houses_pd,
-    geometry=gpd.points_from_xy(houses_pd.longitude, houses_pd.latitude),
-    crs="EPSG:4326"
-)
-high_zones = high_zones.to_crs("EPSG:4326")
-houses_with_zone = gpd.sjoin(
-    houses_gdf,
-    high_zones,
-    how="left",
-    predicate="within"
-)
-houses_with_zone = houses_with_zone.drop(columns=["geometry"])
-houses_with_zone_pl = pl.from_pandas(houses_with_zone)
-houses_with_zone_pl.select(pl.col("name").value_counts())
+# Perform a spatial left join, rename a column, and drop columns
+houses = (
+    gpd.sjoin(gpd.GeoDataFrame(
+                  houses.to_pandas(),
+                  geometry = gpd.points_from_xy(houses.to_pandas()["longitude"], 
+                                                houses.to_pandas()["latitude"]), 
+                  crs = "EPSG:4326"
+                  ),
+              gpd.read_file(("High-School-Attendance-Zones-Shapefile/" 
+                             "High-School-Attendance-Zones.shp"))
+                 .rename(columns = str.lower)
+                 [["geometry", "name"]]
+                 .to_crs("EPSG:4326"),
+              how = "left", predicate = "within")
+       .rename(columns = {"name": "high_school"})
+       .drop(columns = ["geometry", "index_right"])
+       # Convert to a Polars DataFrame
+       .pipe(pl.from_pandas)
+    )
