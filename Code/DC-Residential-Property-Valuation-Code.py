@@ -169,3 +169,68 @@ houses = (
        .drop(columns = ["geometry", "index_right"])
        .pipe(pl.from_pandas)
     )
+    
+################################################################################
+
+os.chdir("/Users/atz5/Desktop")
+
+sat_18_19 = pl.read_excel("School Year 2018-2019 SAT Scores.xlsx")
+sat_18_19 = sat_18_19.slice(2).rename(dict(zip(sat_18_19.columns, sat_18_19.row(1)))) 
+sat_18_19 = sat_18_19.rename({"School Name": "high_school",
+                              "Evidence-Based Reading and Writing Average": "ebrw_avg_sat",
+                              "Math Average": "math_avg_sat",
+                              "Total Average": "total_avg_sat"})
+sat_18_19 = sat_18_19.with_columns(*[pl.col(c).cast(pl.Float64).round().cast(pl.Int64).alias(c)
+                                     for c in ["ebrw_avg_sat", "math_avg_sat", "total_avg_sat"]],
+                                   pl.lit("2019").alias("year"))
+sat_18_19 = sat_18_19.select("year", "high_school", "ebrw_avg_sat", "math_avg_sat", "total_avg_sat")
+sat_18_19 = sat_18_19.filter(pl.col("high_school") != "District")
+
+sat_19_20 = pl.read_excel("School-Year-2019-2020-SAT-Scores.xlsx")
+sat_19_20 = sat_19_20.slice(2).rename(dict(zip(sat_19_20.columns, sat_19_20.row(1)))) 
+sat_19_20 = sat_19_20.rename({"School Name": "high_school",
+                              "Evidence-Based Reading and Writing Average": "ebrw_avg_sat",
+                              "Math Average": "math_avg_sat",
+                              "Total Average": "total_avg_sat"})
+sat_19_20 = sat_19_20.with_columns(*[pl.col(c).cast(pl.Int64).alias(c)
+                                     for c in ["ebrw_avg_sat", "math_avg_sat", "total_avg_sat"]],
+                                   pl.lit("2020").alias("year"))
+sat_19_20 = sat_19_20.select("year", "high_school", "ebrw_avg_sat", "math_avg_sat", "total_avg_sat")
+sat_19_20 = sat_19_20.filter(pl.col("high_school") != "District")
+
+sat_20_21 = pl.read_excel("SchoolYear2020-2021-SATScores.xlsx")
+sat_20_21 = sat_20_21.slice(1).rename(dict(zip(sat_20_21.columns, sat_20_21.row(0))))
+sat_20_21 = sat_20_21.rename({"School Name": "high_school",
+                              "Evidence-Based Reading and Writing Average": "ebrw_avg_sat",
+                              "Math Average": "math_avg_sat",
+                              "Total Average": "total_avg_sat"})
+sat_20_21 = sat_20_21.with_columns(*[pl.col(c).cast(pl.Int64).alias(c)
+                                     for c in ["ebrw_avg_sat", "math_avg_sat", "total_avg_sat"]],
+                                   pl.lit("2021").alias("year"))
+sat_20_21 = sat_20_21.select("year", "high_school", "ebrw_avg_sat", "math_avg_sat", "total_avg_sat")
+sat_20_21 = sat_20_21.filter(pl.col("high_school") != "District")
+
+
+
+
+
+
+
+sat_21_22 = pl.read_excel("School Year 2021-2022 SAT Scores.xlsx")
+sat_21_22 = sat_21_22.slice(1).rename(dict(zip(sat_21_22.columns, sat_21_22.row(0))))
+
+sat_22_23 = pl.read_excel("School Year 2022-2023 SAT Scores.xlsx")
+sat_22_23 = sat_22_23.slice(1).rename(dict(zip(sat_22_23.columns, sat_22_23.row(0))))
+
+sat_23_24 = pl.read_excel("School Year 2023-2024 SAT Scores_0.xlsx")
+sat_23_24 = sat_23_24.slice(1).rename(dict(zip(sat_23_24.columns, sat_23_24.row(0))))
+
+sat_18_24 = pl.concat([sat_18_19, sat_19_20, sat_20_21, sat_21_22, sat_22_23, sat_23_24])
+
+# 2019 houses → 2018–2019 SAT
+# 2020 houses → 2019–2020 SAT
+# 2021 houses → 2020–2021 SAT
+# 2022 houses → 2021–2022 SAT
+# 2023 houses → 2022–2023 SAT
+# 2024 houses → 2023–2024 SAT
+# 2025 houses → 2023–2024 SAT
