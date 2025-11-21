@@ -106,6 +106,10 @@ houses = (
             .alias("sale_date"),
           pl.col("sale_date") 
             .str.split(" ").list.first()
+            .str.to_date("%Y/%m/%d").dt.strftime("%Y") 
+            .alias("sale_year"),
+          pl.col("sale_date") 
+            .str.split(" ").list.first()
             .str.to_date("%Y/%m/%d").dt.strftime("%B") 
             .alias("sale_month"),
           pl.when(pl.col("extwall_d") == "Common Brick")
@@ -169,4 +173,3 @@ houses = (
        .drop(columns = ["geometry", "index_right"])
        .pipe(pl.from_pandas)
     )
-    
