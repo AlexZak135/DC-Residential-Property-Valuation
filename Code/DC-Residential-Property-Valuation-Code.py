@@ -1,6 +1,6 @@
 # Title: DC Residential Property Valuation Analysis
 # Author: Alexander Zakrzeski
-# Date: November 20, 2025
+# Date: November 21, 2025
 
 # Part 1: Setup and Configuration
 
@@ -173,3 +173,116 @@ houses = (
        .drop(columns = ["geometry", "index_right"])
        .pipe(pl.from_pandas)
     )
+
+
+
+################################################################################
+
+sat = (
+    pl.concat([pl.read_parquet("DC-High-School-SAT-Scores-Data.parquet"),
+               pl.read_parquet("DC-High-School-SAT-Scores-Data.parquet")
+                 .filter(pl.col("year") == "2024")
+                 .with_columns(
+                     pl.lit("2025").alias("year")
+                     )], 
+              how = "vertical")
+      .with_columns(
+          pl.when(pl.col("high_school") == "Anacostia HS")
+            .then(pl.lit("Anacostia"))
+            .when(pl.col("high_school") == "Ballou HS")
+            .then(pl.lit("Ballou"))
+            .when(pl.col("high_school") == "Cardozo EC")
+            .then(pl.lit("Cardozo"))
+            .when(pl.col("high_school") == "Coolidge HS")
+            .then(pl.lit("Coolidge"))
+            .when(pl.col("high_school") == "Dunbar HS")
+            .then(pl.lit("Dunbar"))
+            .when(pl.col("high_school") == "Eastern HS")
+            .then(pl.lit("Eastern"))
+            .when(pl.col("high_school").is_in(["Jackson-Reed HS", 
+                                               "Woodrow Wilson HS"]))
+            .then(pl.lit("Jackson-Reed"))
+            .when(pl.col("high_school") == "Roosevelt HS")
+            .then(pl.lit("Roosevelt"))
+            .when(pl.col("high_school").is_in(["Woodson H.D. HS", 
+                                               "Woodson, H.D. HS"]))
+            .then(pl.lit("Woodson"))       
+     )
+    )
+  
+
+
+
+
+# 2019 High Schools
+"Anacostia HS" -> "Anacostia"
+"Ballou HS" -> "Ballou"
+"Cardozo EC" -> "Cardozo"
+"Coolidge HS" -> "Coolidge"
+"Dunbar HS" -> "Dunbar"
+"Eastern HS" -> "Eastern"
+"Woodrow Wilson HS" -> "Jackson-Reed"
+"Woodrow Wilson HS" -> "MacArthur"
+"Roosevelt HS" -> "Roosevelt"
+"Woodson, H.D. HS" -> "Woodson"
+
+# 2020 High Schools
+"Anacostia HS" -> "Anacostia"
+"Ballou HS" -> "Ballou"
+"Cardozo EC" -> "Cardozo"
+"Coolidge HS" -> "Coolidge"
+"Dunbar HS" -> "Dunbar"
+"Eastern HS" -> "Eastern"
+"Woodrow Wilson HS" -> "Jackson-Reed"
+"Woodrow Wilson HS" -> "MacArthur"
+"Roosevelt HS" -> "Roosevelt"
+"Woodson, H.D. HS" -> "Woodson"
+
+# 2021 High Schools
+"Anacostia HS" -> "Anacostia"
+"Ballou HS" -> "Ballou"
+"Cardozo EC" -> "Cardozo"
+"Coolidge HS" -> "Coolidge"
+"Dunbar HS" -> "Dunbar"
+"Eastern HS" -> "Eastern"
+"Woodrow Wilson HS" -> "Jackson-Reed"
+"Woodrow Wilson HS" -> "MacArthur"
+"Roosevelt HS" -> "Roosevelt"
+"Woodson H.D. HS" -> "Woodson"
+
+# 2022 High Schools
+"Anacostia HS" -> "Anacostia"
+"Ballou HS" -> "Ballou"
+"Cardozo EC" -> "Cardozo"
+"Coolidge HS" -> "Coolidge"
+"Dunbar HS" -> "Dunbar"
+"Eastern HS" -> "Eastern"
+"Woodrow Wilson HS" -> "Jackson-Reed"
+"Woodrow Wilson HS" -> "MacArthur"
+"Roosevelt HS" -> "Roosevelt"
+"Woodson H.D. HS" -> "Woodson"
+
+# 2023 High Schools
+"Anacostia HS" -> "Anacostia"
+"Ballou HS" -> "Ballou"
+"Cardozo EC" -> "Cardozo"
+"Coolidge HS" -> "Coolidge"
+"Dunbar HS" -> "Dunbar"
+"Eastern HS" -> "Eastern"
+"Jackson-Reed HS" -> "Jackson-Reed"
+"Jackson-Reed HS" -> "MacArthur"
+"Roosevelt HS" -> "Roosevelt"
+"Woodson H.D. HS" -> "Woodson"
+
+# 2024 High Schools
+"Anacostia HS" -> "Anacostia"
+"Ballou HS" -> "Ballou"
+"Cardozo EC" -> "Cardozo"
+"Coolidge HS" -> "Coolidge"
+"Dunbar HS" -> "Dunbar"
+"Eastern HS" -> "Eastern"
+"Jackson-Reed HS" -> "Jackson-Reed"
+"Jackson-Reed HS" -> "MacArthur"
+"Roosevelt HS" -> "Roosevelt"
+"Woodson H.D. HS" -> "Woodson"
+
