@@ -1,6 +1,6 @@
 # Title: DC Residential Property Valuation Analysis
 # Author: Alexander Zakrzeski
-# Date: February 15, 2026
+# Date: February 16, 2026
 
 # Part 1: Setup and Configuration
 
@@ -115,6 +115,25 @@ def plot_histogram(df, col, label):
         ))
     
     plt.show()
+
+def plot_box_plot(df, col, label):
+    """ 
+    Plot a box plot displaying the distribution of the continuous variable for 
+    the different values of the categorical variable.
+    """
+    sns.boxplot(df, x = col, y = df.select(pl.col("price").log()).to_series(),
+                order = sorted(df.select(col).unique().to_series().to_list()), 
+                color = "#0078ae")
+    plt.title(label = f"Distribution of Log Price by {label}", fontsize = 17)
+    plt.xlabel(xlabel = "")
+    plt.ylabel(ylabel = "")
+    plt.xticks(rotation = 45, ha = "right")
+    sns.despine(left = True, bottom = True)
+    plt.gca().yaxis.set_major_formatter(ticker.FuncFormatter(
+        lambda x, _: str(x).rstrip(".0")
+        ))
+    
+    plt.show() 
 
 def prepare_train_test_data(df, property, model = None):
     """
@@ -566,6 +585,11 @@ corr_ratios_h = (
       .sort("correlation_ratio", descending = True)         
     )
 
+# Create box plots to display the distribution of the variable across categories
+plot_box_plot(houses, "high_school", "High School")
+plot_box_plot(houses, "ward", "Ward")
+plot_box_plot(houses, "heat_d", "Heating System")
+
 # Section 4.2: Condominiums
 
 # Create the descriptive statistics DataFrame
@@ -614,7 +638,12 @@ corr_ratios_c = (
                for col in condos.select(pl.selectors.string()).columns])
       .sort("correlation_ratio", descending = True)            
     )
-                                                          
+
+# Create box plots to display the distribution of the variable across categories
+plot_box_plot(condos, "high_school", "High School")
+plot_box_plot(condos, "ward", "Ward")
+plot_box_plot(condos, "heat_d", "Heating System")
+                                                     
 # Part 5: Machine Learning Models
 
 # Section 5.1: Houses
@@ -875,105 +904,4 @@ shap_importance_c = (
                  header_name = "predictor", 
                  column_names = ["mean_abs_shap"])
       .sort("mean_abs_shap", descending = True)
-    )  
-
-
-
-
-
-
-
-
-
-
-
-################################################################################
-
-
-
-
-
-
- 
-
-
-
-# Define a function to plot distributions using a box plot
-def generate_box_plot(df, column, value):
-    # Create a box plot to display the distributions
-    sns.boxplot(df, x = column, y = "price") 
-                #order = sorted(df.select(column).unique()), color = "#0078ae")
-    plt.title(label = f"Distribution of the Log of Price by {value}", 
-              fontsize = 13)
-    plt.xlabel(xlabel = "")
-    plt.ylabel(ylabel = "")
-    sns.despine(left = True, bottom = True)
-    plt.gca().yaxis.set_major_formatter(ticker.FuncFormatter( 
-      lambda x, _: str(x).rstrip(".0"))
-      )
-    
-    # Display the plot
-    plt.show() 
-    
-generate_box_plot(houses, "ward", "Ward")
-
-
-# Create a scatter plot to display the relationship between the variables
-sns.lmplot(appraisals, x = "log_gba", y = "log_price", 
-           scatter_kws = {"color": "#0078ae"}, line_kws = {"color": "#000000"})
-plt.title(label = "Log of Price vs. Log of Gross Building Area", fontsize = 17)
-plt.xlabel(xlabel = "Log of Gross Building Area", fontsize = 14)
-plt.ylabel(ylabel = "Log of Price", fontsize = 14)
-sns.despine(left = True, bottom = True)
-plt.gca().xaxis.set_major_formatter(ticker.FuncFormatter(
-  lambda x, _: str(x).rstrip(".0")) 
-  )
-plt.gca().yaxis.set_major_formatter(ticker.FuncFormatter( 
-  lambda x, _: str(x).rstrip(".0"))
-  )
-plt.show()
-
-# Create box plots to display distributions
-generate_box_plot("ward", "Ward")
-generate_box_plot("heat_d", "Heating System")
-generate_box_plot("extwall_d", "Exterior Wall")
-generate_box_plot("roof_d", "Roof")
-
-################################################################################
-
-# Define a function to plot distributions using a box plot
-def generate_box_plot(column, value):
-    # Create a box plot to display the distributions
-    sns.boxplot(appraisals, x = column, y = "log_price", 
-                order = sorted(appraisals[column].unique()), color = "#0078ae")
-    plt.title(label = f"Distribution of the Log of Price by {value}", 
-              fontsize = 13)
-    plt.xlabel(xlabel = "")
-    plt.ylabel(ylabel = "")
-    sns.despine(left = True, bottom = True)
-    plt.gca().yaxis.set_major_formatter(ticker.FuncFormatter( 
-      lambda x, _: str(x).rstrip(".0")) 
-      )
-    
-    # Display the plot
-    plt.show() 
-
-# Create a scatter plot to display the relationship between the variables
-sns.lmplot(appraisals, x = "log_unit_gba", y = "log_price", 
-           scatter_kws = {"color": "#0078ae"}, line_kws = {"color": "#000000"})
-plt.title(label = "Log of Price vs. Log of Unit GBA", fontsize = 17)
-plt.xlabel(xlabel = "Log of Unit GBA", fontsize = 14)
-plt.ylabel(ylabel = "Log of Price", fontsize = 14)
-sns.despine(left = True, bottom = True)
-plt.gca().xaxis.set_major_formatter(ticker.FuncFormatter(
-  lambda x, _: str(x).rstrip(".0")) 
-  )
-plt.gca().yaxis.set_major_formatter(ticker.FuncFormatter( 
-  lambda x, _: str(x).rstrip(".0"))
-  )
-plt.show()
-
-# Create box plots to display distributions
-generate_box_plot("ward", "Ward")
-generate_box_plot("heat_d", "Heating System")
-  
+    )
