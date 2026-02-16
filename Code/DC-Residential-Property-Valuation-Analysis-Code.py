@@ -1,12 +1,17 @@
 # Title: DC Residential Property Valuation Analysis
 # Author: Alexander Zakrzeski
-# Date: February 13, 2026
+# Date: February 15, 2026
 
 # Part 1: Setup and Configuration
 
 # Load to import, clean, and wrangle data
 import geopandas as gpd
 import polars as pl
+
+# Load to produce data visualizations
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
+import seaborn as sns
 
 # Load to generate correlation ratios
 from dython.nominal import correlation_ratio
@@ -26,6 +31,10 @@ from sktime.performance_metrics.forecasting import (
     median_absolute_percentage_error
     )
 from xgboost import XGBRegressor
+
+# Globally set the theme and size for the data visualizations
+sns.set_style("whitegrid")
+plt.rcParams["figure.figsize"] = (8, 6) 
 
 # Part 2: Function Definitions
 
@@ -86,6 +95,26 @@ def assign_census_tract(df):
     df = pl.from_pandas(df)
                 
     return df
+
+def plot_histogram(df, col, label):
+    """ 
+    Plot a histogram with a kernel density line displaying the distribution of 
+    the variable.
+    """
+    sns.histplot(df, x = col, bins = 30, kde = True, color = "#0078ae")
+    plt.title(label = f"Distribution of {label}", fontsize = 17)
+    plt.xlabel(xlabel = "")
+    plt.ylabel(ylabel = "Frequency", fontsize = 14)
+    sns.despine(left = True)
+    plt.gca().xaxis.grid(visible = False)
+    plt.gca().xaxis.set_major_formatter(ticker.FuncFormatter(
+        lambda x, _: f"{x:,.1f}".rstrip("0").rstrip(".")
+        ))  
+    plt.gca().yaxis.set_major_formatter(ticker.FuncFormatter(
+        lambda x, _: f"{x:,.1f}".rstrip("0").rstrip(".")
+        ))
+    
+    plt.show()
 
 def prepare_train_test_data(df, property, model = None):
     """
@@ -504,6 +533,11 @@ descriptive_stats_h = (
           .sort("statistic")
     )
 
+# Create histograms with overlaid KDEs to display distributions
+plot_histogram(houses, "price", "Price")
+plot_histogram(houses, houses.select(pl.col("price").log()).to_series(), 
+               "Log Price")
+
 # Create the Pearson correlation coefficients DataFrame
 pearson_corrs_h = (
     pl.concat([pl.DataFrame({
@@ -547,6 +581,11 @@ descriptive_stats_c = (
               )
           .sort("statistic")
     )
+
+# Create histograms with overlaid KDEs to display distributions
+plot_histogram(condos, "price", "Price")
+plot_histogram(condos, condos.select(pl.col("price").log()).to_series(), 
+               "Log Price")
 
 # Create the Pearson correlation coefficients DataFrame
 pearson_corrs_c = (
@@ -836,4 +875,105 @@ shap_importance_c = (
                  header_name = "predictor", 
                  column_names = ["mean_abs_shap"])
       .sort("mean_abs_shap", descending = True)
-    )    
+    )  
+
+
+
+
+
+
+
+
+
+
+
+################################################################################
+
+
+
+
+
+
+ 
+
+
+
+# Define a function to plot distributions using a box plot
+def generate_box_plot(df, column, value):
+    # Create a box plot to display the distributions
+    sns.boxplot(df, x = column, y = "price") 
+                #order = sorted(df.select(column).unique()), color = "#0078ae")
+    plt.title(label = f"Distribution of the Log of Price by {value}", 
+              fontsize = 13)
+    plt.xlabel(xlabel = "")
+    plt.ylabel(ylabel = "")
+    sns.despine(left = True, bottom = True)
+    plt.gca().yaxis.set_major_formatter(ticker.FuncFormatter( 
+      lambda x, _: str(x).rstrip(".0"))
+      )
+    
+    # Display the plot
+    plt.show() 
+    
+generate_box_plot(houses, "ward", "Ward")
+
+
+# Create a scatter plot to display the relationship between the variables
+sns.lmplot(appraisals, x = "log_gba", y = "log_price", 
+           scatter_kws = {"color": "#0078ae"}, line_kws = {"color": "#000000"})
+plt.title(label = "Log of Price vs. Log of Gross Building Area", fontsize = 17)
+plt.xlabel(xlabel = "Log of Gross Building Area", fontsize = 14)
+plt.ylabel(ylabel = "Log of Price", fontsize = 14)
+sns.despine(left = True, bottom = True)
+plt.gca().xaxis.set_major_formatter(ticker.FuncFormatter(
+  lambda x, _: str(x).rstrip(".0")) 
+  )
+plt.gca().yaxis.set_major_formatter(ticker.FuncFormatter( 
+  lambda x, _: str(x).rstrip(".0"))
+  )
+plt.show()
+
+# Create box plots to display distributions
+generate_box_plot("ward", "Ward")
+generate_box_plot("heat_d", "Heating System")
+generate_box_plot("extwall_d", "Exterior Wall")
+generate_box_plot("roof_d", "Roof")
+
+################################################################################
+
+# Define a function to plot distributions using a box plot
+def generate_box_plot(column, value):
+    # Create a box plot to display the distributions
+    sns.boxplot(appraisals, x = column, y = "log_price", 
+                order = sorted(appraisals[column].unique()), color = "#0078ae")
+    plt.title(label = f"Distribution of the Log of Price by {value}", 
+              fontsize = 13)
+    plt.xlabel(xlabel = "")
+    plt.ylabel(ylabel = "")
+    sns.despine(left = True, bottom = True)
+    plt.gca().yaxis.set_major_formatter(ticker.FuncFormatter( 
+      lambda x, _: str(x).rstrip(".0")) 
+      )
+    
+    # Display the plot
+    plt.show() 
+
+# Create a scatter plot to display the relationship between the variables
+sns.lmplot(appraisals, x = "log_unit_gba", y = "log_price", 
+           scatter_kws = {"color": "#0078ae"}, line_kws = {"color": "#000000"})
+plt.title(label = "Log of Price vs. Log of Unit GBA", fontsize = 17)
+plt.xlabel(xlabel = "Log of Unit GBA", fontsize = 14)
+plt.ylabel(ylabel = "Log of Price", fontsize = 14)
+sns.despine(left = True, bottom = True)
+plt.gca().xaxis.set_major_formatter(ticker.FuncFormatter(
+  lambda x, _: str(x).rstrip(".0")) 
+  )
+plt.gca().yaxis.set_major_formatter(ticker.FuncFormatter( 
+  lambda x, _: str(x).rstrip(".0"))
+  )
+plt.show()
+
+# Create box plots to display distributions
+generate_box_plot("ward", "Ward")
+generate_box_plot("heat_d", "Heating System")
+  
