@@ -1,1 +1,15 @@
-# DC-Residential-Property-Valuation
+# Predicting DC Residential Property Values
+
+## Overview
+
+Washington, D.C., the nation’s capital, contains a wide range of residential properties, many of which have existed for over a century, while others are newly constructed. These properties reflect numerous architectural styles and embody the city’s rich history, as well as the diversity that makes the district unique within the United States. Washington, D.C., is divided into eight wards, each with distinct residential characteristics, ranging from modest starter homes for new families to expansive mansions inhabited by the district’s most affluent residents. Although differences exist in the styles, sizes, and values of these properties, each contributes to the diverse and historic residential landscape that defines Washington, D.C.
+
+The government of Washington, D.C., is responsible for accurately predicting residential property values, as these valuations form the basis of the ad valorem property tax paid by property owners. To fulfill this responsibility, the Office of Tax and Revenue’s Computer-Assisted Mass Appraisal (CAMA) database, maintained by the Assessment Division within the Real Property Tax Administration, serves as the primary data source for developing valuation models. This database contains a comprehensive sales history of active properties listed in the district’s real property tax assessment roll. In addition, it includes detailed property characteristics recorded at the time of sale, and its contents are periodically updated to reflect the most current information available.
+
+This research utilized multiple Washington, D.C., residential property datasets maintained by the district government, including the CAMA database, along with American Community Survey (ACS) 2018–2022 Census tract–level socioeconomic estimates. The dataset spans five years of residential property sales, covering both houses and condominiums from January 1, 2021, through December 31, 2025. Data preprocessing and exploratory analysis were performed using statistical methods, including correlation analysis, along with visualizations such as histograms, box plots, and scatter plots. Ten supervised machine learning models were then developed: five for predicting residential house values and five for predicting residential condominium values. These included three tree-based ensemble algorithms for each property type, with models trained on 2021–2024 records and evaluated using 2025 data. Among all models, LightGBM performed the best for predicting both house and condominium values, with XGBoost performing second best in both categories.
+
+## Files
+This is the [Python script](https://github.com/AlexZak135/DC-Residential-Property-Valuation/blob/master/Code/DC-Residential-Property-Valuation-Analysis-Code.py) containing the code used for this analysis, and these are the [datasets](https://github.com/AlexZak135/DC-Residential-Property-Valuation/tree/master/Data) used in the scripts.
+
+## Outputs
+These [outputs](https://github.com/AlexZak135/DC-Residential-Property-Valuation/tree/master/Outputs) display the performance and error metrics from the machine learning models.
