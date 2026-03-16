@@ -2,7 +2,7 @@
 
 ## Overview
 
-Washington, D.C. has a vast range of houses and condominiums. Some homes are over a century old, while others are newly built. In many residential neighborhoods, smaller and more affordable homes and condominiums are common for new families, while other neighborhoods have larger homes owned by some of the city’s wealthiest residents. Differences in age, style, size, and value reflect the city’s history and shape housing across the city.
+Washington, D.C. has a wide range of houses and condominiums. Some homes are over a century old, while others are newly built. In many residential neighborhoods, smaller and more affordable homes and condominiums are common for new families, while other neighborhoods have larger homes owned by some of the city’s wealthiest residents. Differences in age, style, size, and value reflect the city’s history and shape housing across the city.
 
 The government of Washington, D.C. is responsible for estimating residential property values because these valuations determine the ad valorem property taxes paid by property owners. To do this, the Office of Tax and Revenue relies on the Computer-Assisted Mass Appraisal (CAMA) database maintained by the Assessment Division within the Real Property Tax Administration. This database is the primary data source for building valuation models. It contains a sales history of active properties listed in the district’s real property tax assessment roll, along with property characteristics recorded at the time of sale. The database is periodically updated to reflect the most current information available.
 
