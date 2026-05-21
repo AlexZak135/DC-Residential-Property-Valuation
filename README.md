@@ -12,4 +12,4 @@ This analysis relied on several Washington, D.C. datasets maintained by the dist
 This is the [Python script](https://github.com/AlexZak135/DC-Residential-Property-Valuation/blob/master/Code/DC-Residential-Property-Valuation-Analysis-Code.py) containing the code used for this analysis, these are the [datasets](https://github.com/AlexZak135/DC-Residential-Property-Valuation/tree/master/Data) used in the script, and this is the [requirements file](https://github.com/AlexZak135/DC-Residential-Property-Valuation/blob/master/requirements.txt) listing the Python packages needed to run the code.
 
 ## Outputs
-These [outputs](https://github.com/AlexZak135/DC-Residential-Property-Valuation/tree/master/Outputs) display the performance and error metrics from the machine learning models.
+These [outputs](https://github.com/AlexZak135/DC-Residential-Property-Valuation/tree/master/Outputs) display the performance and error metrics for all machine learning models.
